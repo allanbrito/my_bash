@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <key name="Software">
 	<key name="ConEmu">
-		<key name=".Vanilla" modified="2015-10-29 10:31:09" build="151025">
+		<key name=".Vanilla" modified="2015-10-29 12:19:45" build="151025">
 			<value name="StartType" type="hex" data="02"/>
 			<value name="CmdLine" type="string" data=""/>
 			<value name="StartTasksFile" type="string" data=""/>
@@ -333,9 +333,9 @@
 			<value name="Cascaded" type="hex" data="01"/>
 			<value name="IntegralSize" type="hex" data="00"/>
 			<value name="WindowMode" type="dword" data="0000051f"/>
-			<value name="ConWnd X" type="dword" data="00000002"/>
-			<value name="ConWnd Y" type="dword" data="0000002d"/>
-			<value name="LastMonitor" type="hex" data="40,ca,12,00,00,00,00,00"/>
+			<value name="ConWnd X" type="dword" data="00000000"/>
+			<value name="ConWnd Y" type="dword" data="00000000"/>
+			<value name="LastMonitor" type="hex" data="30,e3,12,00,00,00,00,00"/>
 			<value name="ConWnd Width" type="dword" data="000000ee"/>
 			<value name="ConWnd Height" type="dword" data="0000001e"/>
 			<value name="16bit Height" type="dword" data="00000000"/>

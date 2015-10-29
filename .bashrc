@@ -122,15 +122,15 @@ function bash_reset {
 function bash_update {
 	git -C "$path_bash_files" fetch
 	if [[ $(git -C "$path_bash_files" rev-parse HEAD) != $(git -C "$path_bash_files" rev-parse origin/master) ]]; then
-		read -r -p "Deseja atualizar as funções? [S/n] " response
-		case $response in
-			[sS][iI][mM]|[sS])
+		# read -r -p "Deseja atualizar as funções? [S/n] " response
+		# case $response in
+		# 	[sS][iI][mM]|[sS])
 				cd "$path_bash_files"
 				git pull origin master
 				cp .bashrc ../.bashrc
 				bash_reset
-			;;
-		esac
+		# 	;;
+		# esac
 	fi
 }
 
