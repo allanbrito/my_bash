@@ -93,11 +93,11 @@ function bash_commit {
 			msg=${msg:-bash_update}
 			cd "$path_bash_files"
 			cp ../.bashrc .bashrc
-			cp ~/AppData/Roaming/ConEmu.xml "path_bash_files"/
+			cp ~/AppData/Roaming/ConEmu.xml "$path_bash_files"/bash/
 			git add .
 			git commit -am "$msg"
 			bash_update_version
-			git pull origin master && 
+			git pull origin master &&
 			git push origin master
 			cd "/$path"
 		;;
@@ -108,7 +108,7 @@ function bash_commit {
 		"")
 			bash_commit
 		;;
-	esac 
+	esac
 }
 
 function bash_reset {
@@ -131,7 +131,7 @@ function bash_update {
 				bash_reset
 			;;
 		esac
-	fi	
+	fi
 }
 
 function git_commit {
@@ -142,17 +142,17 @@ function git_commit {
 			-e)
 				update=false
 			;;
-			* )	
+			* )
 				mensagem="$mensagem $1"
 			;;
 		esac
 		shift
 	done
 	if [[ $mensagem != "" ]]; then
-		git add . 
-		git commit -am "$mensagem" || true 
-		git pull 
-		git push 
+		git add .
+		git commit -am "$mensagem" || true
+		git pull
+		git push
 		if [[ $update == true ]]; then
 			git_update
 		fi
@@ -163,27 +163,27 @@ function git_update {
 	local path="${PWD##/}"
 	if [[ -d "sisfinanc" ]]; then
 		echo "  sisfinanc, env e var:"
-		cd sisfinanc 
+		cd sisfinanc
 		git pull || true
 	else
 		echo "  env e var:"
 	fi
-	x env 
-	git pull || true 
-	x var 
-	git pull || true 
+	x env
+	git pull || true
+	x var
+	git pull || true
 	cd "/$path"
 }
 
 function init_bash {
 	if [ ! -d "$path_bash_files"/.git ]; then
-		git -C "$path_bash_files" init 
-		git -C "$path_bash_files" remote add origin https://github.com/allanbrito/my_bash.git 
+		git -C "$path_bash_files" init
+		git -C "$path_bash_files" remote add origin https://github.com/allanbrito/my_bash.git
 		git -C "$path_bash_files" fetch --all
 		git -C "$path_bash_files" pull origin master
 		bash_update_version
 		cp "$path_bash_files"/.bashrc "$path_bash_files"/../.bashrc
-		cp "path_bash_files"/ConEmu.xml ~/AppData/Roaming/
+		cp "$path_bash_files"/bash/ConEmu.xml ~/AppData/Roaming/
 		if [[ $windows == true ]]; then
 			cp $path_bash_files/bash/Bash.lnk ~/Desktop/
 			$path_bash_files/bash/Bash.exe
@@ -248,7 +248,7 @@ function mysql_backup {
 	local aTabelasIgnoradas=(log_log uso_usuario usi_usuario_grupo_usuario pro_perfil_usuario usuario_acao sms_sms eml_email)
 	local extracommands=''
 	now=$(date +"%Y%m%d_%H%M")
-	
+
 	mkdir -p ~/backups
 
 	while [ "$1" != "" ]; do
@@ -298,10 +298,10 @@ function mysql_backup {
 				echo "         -tabelas: tabelas que serão baixadas (opcional)"
 				exit=true
 			;;
-			* )	
+			* )
 				if [[ $banco == "" ]] ; then
 					banco=$1
-				else 
+				else
 					if [[ $tabelas == "" ]] ; then
 						tabelas="$1"
 					else
@@ -337,13 +337,13 @@ function mysql_backup {
 
 		if [[ $baixa_por_ssh == true && $remote == true && $ssh != "" ]] ; then
 			ssh.exe "$ssh" "mysqldump -u $user -p$pass sindical_$banco $tabelas $extracommands > /tmp/$banco.sql && gzip -f /tmp/$banco.sql"
-			scp sindicalizi:/tmp/"$banco".sql.gz ~/backups/temp.gz 
+			scp sindicalizi:/tmp/"$banco".sql.gz ~/backups/temp.gz
 			gunzip -c ~/backups/temp.gz > "$fullpath"
-			rm ~/backups/temp.gz 
+			rm ~/backups/temp.gz
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		else
-			mysqldump -u "$user" -p"$pass" -h "$host" sindical_"$banco" $tabelas $extracommands > "$fullpath" 
+			mysqldump -u "$user" -p"$pass" -h "$host" sindical_"$banco" $tabelas $extracommands > "$fullpath"
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		fi
@@ -358,7 +358,7 @@ function mysql_backup_local {
 function mysql_backup_remote {
 	if [[ $baixa_por_ssh == true ]]; then
 		echo "Fazendo dump de produção por ssh"
-	else 
+	else
 		echo "Fazendo dump de produção"
 	fi
 
@@ -366,7 +366,7 @@ function mysql_backup_remote {
 }
 
 function mysql_dump {
-	bkpr $@ 
+	bkpr $@
 	upll $@ -path "$fullpath"
 }
 
@@ -396,7 +396,7 @@ function mysql_local {
 	connection="$pass mysql -u $user -h $host"
 	if [[ "$2" == "" ]] ; then
 		if [[ ${use_database:-$1} != "" ]]; then
-			eval MYSQL_PWD=$connection sindical_${use_database:-$1} 
+			eval MYSQL_PWD=$connection sindical_${use_database:-$1}
 		else
 			eval MYSQL_PWD=$connection
 		fi
@@ -405,7 +405,7 @@ function mysql_local {
 		if [[ "$use_database" == "" ]] ; then
 			banco="$1"
 			shift
-		else 
+		else
 			if [[ $(echo "${mysql_commands[@]}" | grep "$1" | wc -w) -eq 0 ]]; then
 				banco="$1"
 				shift
@@ -468,7 +468,7 @@ function mysql_upload {
 				banco=$1
 			;;
 			--h | -help )
-				echo "Que doideira!!" 
+				echo "Que doideira!!"
 				exit=true
 			;;
 			-r | --remote )
@@ -479,10 +479,10 @@ function mysql_upload {
 				shift
 				path="$*"
 			;;
-			* )	
+			* )
 				if [[ $banco == "" ]] ; then
 					banco=$1
-				else 
+				else
 					if [[ $path == "" ]] ; then
 						path="$1"
 					fi
@@ -510,7 +510,7 @@ function mysql_upload_local {
 }
 
 function mysql_upload_remote {
-	
+
 	read -r -p "Tem certeza que deseja subir dados para o servidor? [S/N] " response
 	case $response in
 		[sS][iI][mM]|[sS])
@@ -547,7 +547,7 @@ function open_bash {
 function open_wiki {
 	if [[ "$windows" == true ]] ; then
 		start "$wiki_url"
-	else 
+	else
 		if [[ "$mac" == true ]] ; then
 			open "$wiki_url"
 		else
@@ -650,7 +650,7 @@ set -o noglob
 mkdir -p "$path_bash_files"
 ( [ -f "$path_config" ] || init_config)
 eval "$default_params"
-while read linha 
+while read linha
 do
     eval "$linha"
 done < "$path_config"
@@ -673,10 +673,10 @@ esac
 migrations=$path_root/sindicalizi/migrations/
 
 if [[ "$atualiza_bashrc" == true ]] ; then
-	init_bash 
-	if [[ $(diff "$path_bash_files"/.bashrc "$path_bash_files"/../.bashrc) ]]; then 
+	init_bash
+	if [[ $(diff "$path_bash_files"/.bashrc "$path_bash_files"/../.bashrc) ]]; then
 		bash_commit
-	else 
+	else
 		bash_update
 	fi
 	clear
