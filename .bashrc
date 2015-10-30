@@ -114,7 +114,7 @@ function bash_commit {
 function bash_reset {
 	clear
 	if [[ "$windows" == true ]] ; then
-		$path_bash_files/bash/Bash.exe
+		# $path_bash_files/bash/Bash.exe
 		# "C:\Program Files (x86)\Git\bin\sh.exe" --login -i
 	fi
 }
