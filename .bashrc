@@ -541,7 +541,9 @@ function open_config {
 }
 
 function open_bash {
-	subl ~/.bashrc
+	if [[ "$windows" == true ]] ; then
+		/C/Program\ Files/Sublime\ Text\ 3/subl.exe ~/.bashrc
+	fi
 }
 
 function open_wiki {
