@@ -93,7 +93,7 @@ function bash_commit {
 			msg=${msg:-bash_update}
 			cd "$path_bash_files"
 			cp ../.bashrc .bashrc
-			cp ~/AppData/Roaming/ConEmu.xml "$path_bash_files"/bash/
+			# cp ~/AppData/Roaming/ConEmu.xml "$path_bash_files"/bash/
 			git add .
 			git commit -am "$msg"
 			bash_update_version
@@ -183,7 +183,7 @@ function init_bash {
 		git -C "$path_bash_files" pull origin master
 		bash_update_version
 		cp "$path_bash_files"/.bashrc "$path_bash_files"/../.bashrc
-		cp "$path_bash_files"/bash/ConEmu.xml ~/AppData/Roaming/
+		# cp "$path_bash_files"/bash/ConEmu.xml ~/AppData/Roaming/
 		if [[ $windows == true ]]; then
 			cp $path_bash_files/bash/Bash.lnk ~/Desktop/
 			$path_bash_files/bash/Bash.exe
