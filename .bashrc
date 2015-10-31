@@ -328,22 +328,25 @@ function mysql_backup {
 		mkdir -p ~/backups/"$banco"
 		path="$path".sql
 		fullpath=~/backups/"$banco"/"$path"
+		if [[ $banco != *_* ]]; then
+			banco=sindical_$banco
+		fi
 		if [[ $bIgnoraTabelas == true ]] ; then
 			for tabela in "${aTabelasIgnoradas[@]}"
 			do :
-			   extracommands+=" --ignore-table=sindical_$banco.${tabela}"
+			   extracommands+=" --ignore-table=$banco.${tabela}"
 			done
 		fi
 
 		if [[ $baixa_por_ssh == true && $remote == true && $ssh != "" ]] ; then
-			ssh.exe "$ssh" "mysqldump -u $user -p$pass sindical_$banco $tabelas $extracommands > /tmp/$banco.sql && gzip -f /tmp/$banco.sql"
+			ssh.exe "$ssh" "mysqldump -u $user -p$pass $banco $tabelas $extracommands > /tmp/$banco.sql && gzip -f /tmp/$banco.sql"
 			scp sindicalizi:/tmp/"$banco".sql.gz ~/backups/temp.gz
 			gunzip -c ~/backups/temp.gz > "$fullpath"
 			rm ~/backups/temp.gz
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		else
-			mysqldump -u "$user" -p"$pass" -h "$host" sindical_"$banco" $tabelas $extracommands > "$fullpath"
+			mysqldump -u "$user" -p"$pass" -h "$host" "$banco" $tabelas $extracommands > "$fullpath"
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		fi
@@ -384,6 +387,21 @@ function mysql_local {
 	local pass="$local_pass"
 	local banco=
 	local mysql_commands=("select" "update" "delete" "alter" "show" "desc" "create" "drop" "describe" "flush")
+	local bases=("manager" "sindical")
+	local prefixo=
+
+
+	if [[ $use_database != "" && $(echo "${bases[@]}" | grep "$use_database" | wc -w) -eq 0 ]]; then
+		prefixo=''
+	else
+		prefixo="$use_database"_
+	fi
+
+	# [[ $use_database != "" ]] && if [[ $use_database != *_* ]]; then
+	# 	prefixo=$use_database
+	# else
+	# 	banco=$use_database
+	# fi
 
 	if [[ "$1" == "-r" ]] ; then
 		host="$remote_host"
@@ -395,8 +413,16 @@ function mysql_local {
 	# connection="-u $user -h $host -p$pass"
 	connection="$pass mysql -u $user -h $host"
 	if [[ "$2" == "" ]] ; then
-		if [[ ${use_database:-$1} != "" ]]; then
-			eval MYSQL_PWD=$connection sindical_${use_database:-$1}
+		if [[ $prefixo == ""  && $use_database != "" ]]; then
+			banco=$use_database
+		else
+			banco=$1
+		fi
+		if [[ $banco != "" ]]; then
+			if [[ $prefixo == "" && $banco != *_* ]]; then
+				banco=sindical_$banco
+			fi
+			eval MYSQL_PWD=$connection "$prefixo""$banco"
 		else
 			eval MYSQL_PWD=$connection
 		fi
@@ -417,8 +443,12 @@ function mysql_local {
 		if [[ -f $@ ]]; then
 			sql="source ${sql/~/\~}"
 		fi
+		if [[ $prefixo == "" && $banco != *_* ]]; then
+			banco=sindical_$banco
+		fi
+
 		if [[ "$sql" != "" ]]; then
-			eval MYSQL_PWD=$connection sindical_$banco -e \'"$sql"\'
+			eval MYSQL_PWD=$connection "$prefixo""$banco" -e \'"$sql"\'
 		else
 			eval MYSQL_PWD=$connection
 		fi
@@ -498,7 +528,10 @@ function mysql_upload {
 			user="$remote_user"
 			pass="$remote_pass"
 		fi
-		mysql -u "$user" -h "$host" -p"$pass" sindical_"$banco" < "$path"
+		if [[ $banco != *_* ]]; then
+			banco=sindical_$banco
+		fi
+		mysql -u "$user" -h "$host" -p"$pass" "$banco" < "$path"
 		[[ $banco == sispag* && $remote == false ]] && mysql_update_urlws_local $banco
 		[[ $banco == sispag* && $remote == true ]] && mysql_update_urlws_remote $banco
 	fi
@@ -523,7 +556,7 @@ function mysql_upload_remote {
 }
 
 function mysql_use {
-	use_database="$1"
+	use_database="${1:-sindical}"
 }
 
 function mysql_restore {
