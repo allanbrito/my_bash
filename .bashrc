@@ -202,11 +202,11 @@ function init_config {
 function init_base_migracao {
 	if [[ "$1" != "" ]]; then
 		banco=${2:-sinpoldf}
-		m "$1" create database if not exists sindical_"$1"_migracao
-		bkpl $@ -d -f -b "$banco"
-		upll $@ -b "$1"_migracao -path "$fullpath"
-		bkpl $@ -f -b "$banco"
-		upll $@ -b "$1"_migracao -path "$fullpath"
+		mysql_local "$1" create database if not exists sindical_"$1"_migracao
+		mysql_backup_local $@ -d -f -b "$banco"
+		mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
+		mysql_backup_local $@ -f -b "$banco"
+		mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
 	fi
 }
 
@@ -327,7 +327,7 @@ function mysql_backup {
 		fi
 		mkdir -p ~/backups/"$banco"
 		path="$path".sql
-		fullpath=~/backups/"$banco"/"$path"
+		fullpath=~/backups/"$banco"/"${path// /_}"
 		if [[ $banco != *_* ]]; then
 			banco=sindical_$banco
 		fi
@@ -369,16 +369,16 @@ function mysql_backup_remote {
 }
 
 function mysql_dump {
-	bkpr $@
-	upll $@ -path "$fullpath"
+	mysql_backup_remote $@
+	mysql_upload_local $@ -path "$fullpath"
 }
 
 function mysql_dump_migracao {
 	m "$1" create database if not exists sindical_"$1"_migracao
-	bkpr $@ -d -f
-	upll $@ -b "$1"_migracao -path "$fullpath"
-	bkpr $@ -f
-	upll $@ -b "$1"_migracao -path "$fullpath"
+	mysql_backup_remote $@ -d -f
+	mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
+	mysql_backup_remote $@ -f
+	mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
 }
 
 function mysql_local {
@@ -387,21 +387,6 @@ function mysql_local {
 	local pass="$local_pass"
 	local banco=
 	local mysql_commands=("select" "update" "delete" "alter" "show" "desc" "create" "drop" "describe" "flush")
-	local bases=("manager" "sindical")
-	local prefixo=
-
-
-	if [[ $use_database != "" && $(echo "${bases[@]}" | grep "$use_database" | wc -w) -eq 0 ]]; then
-		prefixo=''
-	else
-		prefixo="$use_database"_
-	fi
-
-	# [[ $use_database != "" ]] && if [[ $use_database != *_* ]]; then
-	# 	prefixo=$use_database
-	# else
-	# 	banco=$use_database
-	# fi
 
 	if [[ "$1" == "-r" ]] ; then
 		host="$remote_host"
@@ -413,42 +398,37 @@ function mysql_local {
 	# connection="-u $user -h $host -p$pass"
 	connection="$pass mysql -u $user -h $host"
 	if [[ "$2" == "" ]] ; then
-		if [[ $prefixo == ""  && $use_database != "" ]]; then
+		[[ "$1" != "" ]] && use "$1"
+		# if [[ $use_database != *_* ]]; then
 			banco=$use_database
-		else
-			banco=$1
-		fi
-		if [[ $banco != "" ]]; then
-			if [[ $prefixo == "" && $banco != *_* ]]; then
-				banco=sindical_$banco
-			fi
-			eval MYSQL_PWD=$connection "$prefixo""$banco"
+		# else
+		# 	banco=$1
+		# fi
+		if [[ $banco != *_ ]]; then
+			# if [[ $banco != *_* ]]; then
+			# 	banco=sindical_$banco
+			# fi
+			eval MYSQL_PWD=$connection "$banco"
 		else
 			eval MYSQL_PWD=$connection
 		fi
 		# mysql $connection sindical_${use_database:-$1} || mysql $connection
 	else
-		if [[ "$use_database" == "" ]] ; then
-			banco="$1"
+		if [[ $(echo "${mysql_commands[@]}" | grep "$1" | wc -w) -eq 0 ]]; then
+			use "$1"
 			shift
-		else
-			if [[ $(echo "${mysql_commands[@]}" | grep "$1" | wc -w) -eq 0 ]]; then
-				banco="$1"
-				shift
-			else
-				banco="$use_database"
-			fi
 		fi
+			banco="$use_database"
 		local sql=$@
 		if [[ -f $@ ]]; then
 			sql="source ${sql/~/\~}"
 		fi
-		if [[ $prefixo == "" && $banco != *_* ]]; then
-			banco=sindical_$banco
-		fi
+		# if [[ $banco != *_* ]]; then
+		# 	banco=sindical_$banco
+		# fi
 
 		if [[ "$sql" != "" ]]; then
-			eval MYSQL_PWD=$connection "$prefixo""$banco" -e \'"$sql"\'
+			eval MYSQL_PWD=$connection "$banco" -e \'"$sql"\'
 		else
 			eval MYSQL_PWD=$connection
 		fi
@@ -467,7 +447,11 @@ function mysql_update_urlws_local {
 
 function mysql_update_urlws_remote {
 	local banco=${1:-sispag}
-	echo "Alterando ema_url_ws de $banco para remote" && s "$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+	if [[ "$2" == "-l" ]]; then
+		m "$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+	else
+		echo "Alterando ema_url_ws de $banco para remote" && s "$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+	fi
 }
 
 function mysql_upload {
@@ -527,19 +511,23 @@ function mysql_upload {
 			host="$remote_host"
 			user="$remote_user"
 			pass="$remote_pass"
+			[[ $banco == sispag* ]] && mysql_update_urlws_remote $banco -l
 		fi
 		if [[ $banco != *_* ]]; then
 			banco=sindical_$banco
 		fi
-		mysql -u "$user" -h "$host" -p"$pass" "$banco" < "$path"
+
+		connection="$pass mysql -u $user -h $host"
+		eval MYSQL_PWD=$connection "$banco" < "$path"
+		
 		[[ $banco == sispag* && $remote == false ]] && mysql_update_urlws_local $banco
-		[[ $banco == sispag* && $remote == true ]] && mysql_update_urlws_remote $banco
+		[[ $banco == sispag* && $remote == true ]] && mysql_update_urlws_remote $banco && mysql_update_urlws_local $banco
 	fi
 }
 
 function mysql_upload_local {
 	echo "Fazendo restore local"
-	upl $@
+	mysql_upload $@
 }
 
 function mysql_upload_remote {
@@ -548,7 +536,7 @@ function mysql_upload_remote {
 	case $response in
 		[sS][iI][mM]|[sS])
 			echo "Fazendo restore em produção"
-			upl -r $@
+			mysql_upload -r $@
 			;;
 		*)
 			;;
@@ -556,17 +544,33 @@ function mysql_upload_remote {
 }
 
 function mysql_use {
-	use_database="${1:-sindical}"
+	local bases=("manager" "sindical")
+	local array_handler
+	array_handler=(${1//_/ })
+	if [[ $1 == "" ]]; then
+		use_database=sindical_
+	else if [[ "${bases[@]}" == *"${array_handler[0]}"* ]]; then
+			use_database="$1"
+			if [[ $use_database != *_* ]]; then
+				use_database="$use_database"_
+			fi
+		else if [[ $use_database == *_* ]]; then
+			array_handler=(${use_database//_/ })
+			use_database="${array_handler[0]}"_"$1"
+			fi
+		fi 
+	fi
+	echo "usando $use_database"
 }
 
 function mysql_restore {
-	bkpl $@ -b "$1"_migracao
-	uplr $@ -path "$fullpath"
+	mysql_backup_local $@ -b "$1"_migracao
+	mysql_upload_remote $@ -path "$fullpath"
 }
 
 function mysql_restore_migracao {
-	bkpl $@ -b "$1"_migracao
-	uplr $@ -path "$fullpath"
+	mysql_backup_local $@ -b "$1"_migracao
+	mysql_upload_remote $@ -path "$fullpath"
 }
 
 function open_config {
@@ -722,3 +726,4 @@ if [[ "$mostrar_mensagem_ultimo_commit" == true ]] ; then
 	# echo $(git -C "$path_bash_files" log -1 --pretty=format:"%C(bold)%s %C(bold)%C(Yellow ul)%an, %ar")
 	bash_changelog $(echo "--after='"$(cat ~/.bashversion)"'" || echo "-1")
 fi
+use sindical
