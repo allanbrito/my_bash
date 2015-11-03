@@ -345,10 +345,13 @@ function mysql_backup {
 			rm ~/backups/temp.gz
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
+			sed -i 's/.+CREATE ALGORITHM=.+\n//g' "$fullpath"
 		else
 			$path_root/../mysql/bin/mysqldump.exe -u "$user" -p"$pass" -h "$host" "$banco" $tabelas $extracommands > "$fullpath"
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
+			sed -i 's/.+CREATE ALGORITHM=.+\n//g' "$fullpath"
+
 		fi
 	fi
 }
