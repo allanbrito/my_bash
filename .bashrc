@@ -346,7 +346,7 @@ function mysql_backup {
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		else
-			mysqldump -u "$user" -p"$pass" -h "$host" "$banco" $tabelas $extracommands > "$fullpath"
+			$path_root/../mysql/bin/mysqldump.exe -u "$user" -p"$pass" -h "$host" "$banco" $tabelas $extracommands > "$fullpath"
 			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
 			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		fi
@@ -564,7 +564,7 @@ function mysql_use {
 }
 
 function mysql_restore {
-	mysql_backup_local $@ -b "$1"_migracao
+	mysql_backup_local $@ -b "$1"
 	mysql_upload_remote $@ -path "$fullpath"
 }
 
