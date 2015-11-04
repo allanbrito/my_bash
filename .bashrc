@@ -71,6 +71,8 @@ alias subl_update=sublime_update
 alias changelog=bash_changelog
 alias m=mysql_local
 alias s=mysql_remote
+alias mm=mysql_plus_local
+alias ss=mysql_plus_local -r
 alias x=path_root
 alias gtc="git_commit --"
 alias gtu=git_update
@@ -96,6 +98,7 @@ alias a=atalhos
 alias r=reset
 alias b=bash
 alias config=open_config
+alias mysqli=/c/Python27/Scripts/mycli.exe
 
 
 #funcoes
@@ -230,9 +233,9 @@ function init_base_migracao {
 		banco=${2:-sinpoldf}
 		mysql_local "$1" create database if not exists sindical_"$1"_migracao
 		mysql_backup_local $@ -d -f -b "$banco"
-		mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
+		mysql_upload_local $@ -b "$1"_migracao # -path "$fullpath"
 		mysql_backup_local $@ -f -b "$banco"
-		mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
+		mysql_upload_local $@ -b "$1"_migracao # -path "$fullpath"
 	fi
 }
 
@@ -369,16 +372,15 @@ function mysql_backup {
 			scp sindicalizi:/tmp/"$banco".sql.gz ~/backups/temp.gz
 			gunzip -c ~/backups/temp.gz > "$fullpath"
 			rm ~/backups/temp.gz
-			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
-			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
-			sed -i 's/.+CREATE ALGORITHM=.+\n//g' "$fullpath"
 		else
 			$path_root/../mysql/bin/mysqldump.exe -u "$user" -p"$pass" -h "$host" "$banco" $tabelas $extracommands > "$fullpath"
-			sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
-			sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
-			sed -i 's/.+CREATE ALGORITHM=.+\n//g' "$fullpath"
-
 		fi
+		sed -i 's/DEFAULT CURRENT_TIMESTAMP//g' "$fullpath"
+		sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
+		sed -i 's/.+CREATE ALGORITHM=.+\n//g' "$fullpath"
+		echo -e "SET AUTOCOMMIT=0;\nSET UNIQUE_CHECKS=0;\nSET FOREIGN_KEY_CHECKS=0;" | cat - "$fullpath" > "$fullpath"_temp.sql
+		(cat "$fullpath"_temp.sql ; echo -e "SET FOREIGN_KEY_CHECKS=1;\nSET UNIQUE_CHECKS=1;\nSET AUTOCOMMIT=1;\nCOMMIT;") > "$fullpath" 
+		rm "$fullpath"_temp.sql
 	fi
 }
 
@@ -399,15 +401,15 @@ function mysql_backup_remote {
 
 function mysql_dump {
 	mysql_backup_remote $@
-	mysql_upload_local $@ -path "$fullpath"
+	mysql_upload_local $@ # -path "$fullpath"
 }
 
 function mysql_dump_migracao {
 	m "$1" create database if not exists sindical_"$1"_migracao
 	mysql_backup_remote $@ -d -f
-	mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
+	mysql_upload_local $@ -b "$1"_migracao # -path "$fullpath"
 	mysql_backup_remote $@ -f
-	mysql_upload_local $@ -b "$1"_migracao -path "$fullpath"
+	mysql_upload_local $@ -b "$1"_migracao # -path "$fullpath"
 }
 
 function mysql_local {
@@ -465,21 +467,55 @@ function mysql_local {
 	fi
 }
 
+
+function mysql_plus_local {
+	local host="$local_host"
+	local user="$local_user"
+	local pass="$local_pass"
+	local banco=
+
+	if [[ "$1" == "-r" ]] ; then
+		host="$remote_host"
+		user="$remote_user"
+		pass="$remote_pass"
+		shift
+	fi
+
+	# connection="-u $user -h $host -p$pass"
+	connection="-u $user -h $host -p$pass"
+	[[ "$1" != "" ]] && use "$1"
+	# if [[ $use_database != *_* ]]; then
+		banco=$use_database
+	# else
+	# 	banco=$1
+	# fi
+	if [[ $banco != *_ ]]; then
+		# if [[ $banco != *_* ]]; then
+		# 	banco=sindical_$banco
+		# fi
+		mysqli $connection "$banco"
+	else
+		mysqli $connection
+	fi
+}
+
 function mysql_remote {
 	mysql_local -r "$@"
 }
 
 function mysql_update_urlws_local {
 	local banco=${1:-sispag}
-	echo "Alterando ema_url_ws de $banco para local" && m sindical_"$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, '.sindicalizi.com.br',''), 'http://', 'http://localhost/')  where ema_url_ws like '%.sindicalizi.com.br/sispagintegracao/';"
+	local sql="update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, '.sindicalizi.com.br',''), 'http://', 'http://localhost/')  where ema_url_ws like '%.sindicalizi.com.br/sispagintegracao/';"
+	echo "Alterando ema_url_ws de $banco para local" && mysql -u"$local_user" -p"$local_pass"  -h"$local_host" sindical_"$banco" -e "$sql"
 }
 
 function mysql_update_urlws_remote {
 	local banco=${1:-sispag}
+	local sql="update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
 	if [[ "$2" == "-l" ]]; then
-		m sindical_"$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+		mysql -u"$local_user" -p"$local_pass"  -h"$local_host" sindical_"$banco" -e "$sql"
 	else
-		echo "Alterando ema_url_ws de $banco para remote" && s sindical_"$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+		echo "Alterando ema_url_ws de $banco para remote" && mysql -u"$remote_user" -p"$remote_pass"  -h"$remote_host" sindical_"$banco" -e "$sql"
 	fi
 }
 
@@ -488,7 +524,6 @@ function mysql_upload {
 	local user="$local_user"
 	local pass="$local_pass"
 	local banco=
-	local path=
 	local exit=false
 	local remote=false
 
@@ -518,17 +553,11 @@ function mysql_upload {
 				remote=true
 				ssh="sindicalizi"
 			;;
-			-path )
-				shift
-				path="$*"
-			;;
 			* )
 				if [[ $banco == "" ]] ; then
 					banco=$1
 				else
-					if [[ $path == "" ]] ; then
-						path="$1"
-					fi
+					echo
 				fi
 			;;
 		esac
@@ -547,21 +576,20 @@ function mysql_upload {
 		fi
 
 		connection="$pass mysql -u $user -h $host"
-
-		( 
-		    echo "SET AUTOCOMMIT=0;"
-		    echo "SET UNIQUE_CHECKS=0;"
-		    echo "SET FOREIGN_KEY_CHECKS=0;"
-		    cat "$path"
-		    echo "SET FOREIGN_KEY_CHECKS=1;"
-		    echo "SET UNIQUE_CHECKS=1;"
-		    echo "SET AUTOCOMMIT=1;"
-		    echo "COMMIT;"
-		) | $path_root/../mysql/bin/mysql.exe "-u $user -h $host -p$pass"
-		# eval MYSQL_PWD=$connection "$banco" < "$path"
-		echo "$user -h $host -p$pass"
-		echo "$path"
+		if [[ $baixa_por_ssh == true && $remote == true && $ssh != "" ]] ; then
+			if [[ $fullpath != *.gz ]]; then
+				gzip "$fullpath"
+				fullpath="$fullpath".gz
+			fi
+			scp "$fullpath" sindicalizi:.
+			ssh.exe "$ssh" "gunzip $path.gz && mysql -u $user -p$pass $banco < $path"
+			# rm "$fullpath".gz
+		else
+			mysql -u "$user" -p"$pass" -h "$host" "$banco" < "$fullpath"
+		fi
 		
+
+
 		[[ $banco == sispag* && $remote == false ]] && mysql_update_urlws_local $banco
 		[[ $banco == sispag* && $remote == true ]] && mysql_update_urlws_remote $banco && mysql_update_urlws_local $banco
 	fi
@@ -622,12 +650,12 @@ function mysql_use {
 
 function mysql_restore {
 	mysql_backup_local $@ -b "$1"
-	mysql_upload_remote $@ -path "$fullpath"
+	mysql_upload_remote $@ # -path "$fullpath"
 }
 
 function mysql_restore_migracao {
 	mysql_backup_local $@ -b "$1"_migracao
-	mysql_upload_remote $@ -path "$fullpath"
+	mysql_upload_remote $@ # -path "$fullpath"
 }
 
 function open_config {
