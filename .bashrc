@@ -155,6 +155,7 @@ function bash_update {
 		# case $response in
 		# 	[sS][iI][mM]|[sS])
 				cd "$path_bash_files"
+				git checkout -f
 				git pull origin master
 				cp .bashrc ../.bashrc
 				bash_reset
@@ -379,7 +380,7 @@ function mysql_backup {
 		sed -i 's/.+DEFINER=.+\n//g' "$fullpath"
 		sed -i 's/.+CREATE ALGORITHM=.+\n//g' "$fullpath"
 		echo -e "SET AUTOCOMMIT=0;\nSET UNIQUE_CHECKS=0;\nSET FOREIGN_KEY_CHECKS=0;" | cat - "$fullpath" > "$fullpath"_temp.sql
-		(cat "$fullpath"_temp.sql ; echo -e "SET FOREIGN_KEY_CHECKS=1;\nSET UNIQUE_CHECKS=1;\nSET AUTOCOMMIT=1;\nCOMMIT;") > "$fullpath" 
+		(cat "$fullpath"_temp.sql ; echo -e "SET FOREIGN_KEY_CHECKS=1;\nSET UNIQUE_CHECKS=1;\nSET AUTOCOMMIT=1;\nCOMMIT;") > "$fullpath"
 		rm "$fullpath"_temp.sql
 	fi
 }
@@ -587,7 +588,7 @@ function mysql_upload {
 		else
 			mysql -u "$user" -p"$pass" -h "$host" "$banco" < "$fullpath"
 		fi
-		
+
 
 
 		[[ $banco == sispag* && $remote == false ]] && mysql_update_urlws_local $banco
@@ -596,7 +597,7 @@ function mysql_upload {
 }
 
 function teste {
-		( 
+		(
 		    echo "SET AUTOCOMMIT=0;"
 		    echo "SET UNIQUE_CHECKS=0;"
 		    echo "SET FOREIGN_KEY_CHECKS=0;"
@@ -643,7 +644,7 @@ function mysql_use {
 			array_handler=(${use_database//_/ })
 			use_database="${array_handler[0]}"_"$1"
 			fi
-		fi 
+		fi
 	fi
 	# echo "usando $use_database"
 }
