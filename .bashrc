@@ -23,6 +23,33 @@ remote_host=sindicalizi.com.br
 remote_user=sindical
 remote_pass="
 use_database=
+[ -f ~/.bashversion ] || touch ~/.bashversion
+clear
+set -o noglob
+mkdir -p "$path_bash_files"
+( [ -f "$path_config" ] || init_config)
+eval "$default_params"
+while read linha
+do
+    eval "$linha"
+done < "$path_config"
+case "$(uname -s)" in
+	Darwin)
+		mac=true
+	;;
+	Linux)
+		linux=true
+	;;
+	CYGWIN*|MINGW32*|MSYS*)
+		windows=true
+		path_root=/c/xampp/htdocs
+		alias mysql=$path_root/../mysql/bin/mysql.exe
+		alias mysqldump=$path_root/../mysql/bin/mysqldump.exe
+		alias php=$path_root/../php/php.exe
+		alias subl="/C/Program\ Files/Sublime\ Text\ 3/subl.exe"
+	;;
+esac
+migrations=$path_root/sindicalizi/migrations/
 
 #atalhos
 alias ls='ls -F --show-control-chars'
@@ -71,6 +98,7 @@ alias a=atalhos
 alias r=reset
 alias b=bash
 alias config=open_config
+
 
 #funcoes
 function bash_changelog {
@@ -445,15 +473,15 @@ function mysql_remote {
 
 function mysql_update_urlws_local {
 	local banco=${1:-sispag}
-	echo "Alterando ema_url_ws de $banco para local" && m "$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, '.sindicalizi.com.br',''), 'http://', 'http://localhost/')  where ema_url_ws like '%.sindicalizi.com.br/sispagintegracao/';"
+	echo "Alterando ema_url_ws de $banco para local" && m sindical_"$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, '.sindicalizi.com.br',''), 'http://', 'http://localhost/')  where ema_url_ws like '%.sindicalizi.com.br/sispagintegracao/';"
 }
 
 function mysql_update_urlws_remote {
 	local banco=${1:-sispag}
 	if [[ "$2" == "-l" ]]; then
-		m "$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+		m sindical_"$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
 	else
-		echo "Alterando ema_url_ws de $banco para remote" && s "$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
+		echo "Alterando ema_url_ws de $banco para remote" && s sindical_"$banco" "update ema_empresa set ema_url_ws = replace(replace(ema_url_ws, 'localhost/', ''), '/sispagintegracao/', '.sindicalizi.com.br/sispagintegracao/') where ema_url_ws like 'http://localhost/%' and ema_url_ws not like 'http://localhost/sispagintegracao/';"
 	fi
 }
 
@@ -521,11 +549,39 @@ function mysql_upload {
 		fi
 
 		connection="$pass mysql -u $user -h $host"
-		eval MYSQL_PWD=$connection "$banco" < "$path"
+
+		( 
+		    echo "SET AUTOCOMMIT=0;"
+		    echo "SET UNIQUE_CHECKS=0;"
+		    echo "SET FOREIGN_KEY_CHECKS=0;"
+		    cat "$path"
+		    echo "SET FOREIGN_KEY_CHECKS=1;"
+		    echo "SET UNIQUE_CHECKS=1;"
+		    echo "SET AUTOCOMMIT=1;"
+		    echo "COMMIT;"
+		) | $path_root/../mysql/bin/mysql.exe "-u $user -h $host -p$pass"
+		# eval MYSQL_PWD=$connection "$banco" < "$path"
+		echo "$user -h $host -p$pass"
+		echo "$path"
 		
 		[[ $banco == sispag* && $remote == false ]] && mysql_update_urlws_local $banco
 		[[ $banco == sispag* && $remote == true ]] && mysql_update_urlws_remote $banco && mysql_update_urlws_local $banco
 	fi
+}
+
+function teste {
+		( 
+		    echo "SET AUTOCOMMIT=0;"
+		    echo "SET UNIQUE_CHECKS=0;"
+		    echo "SET FOREIGN_KEY_CHECKS=0;"
+		    cat ~/backups/sispag/local_sispag_20151104_0039.sql
+		    echo "SET FOREIGN_KEY_CHECKS=1;"
+		    echo "SET UNIQUE_CHECKS=1;"
+		    echo "SET AUTOCOMMIT=1;"
+		    echo "COMMIT;"
+		) |
+		$path_root/../mysql/bin/mysql.exe -u sindical -h sindicalizi.com.br -pW0%6486T1sTz
+
 }
 
 function mysql_upload_local {
@@ -686,33 +742,7 @@ function atalhos {
 }
 
 #exec
-[ -f ~/.bashversion ] || touch ~/.bashversion
-clear
-set -o noglob
-mkdir -p "$path_bash_files"
-( [ -f "$path_config" ] || init_config)
-eval "$default_params"
-while read linha
-do
-    eval "$linha"
-done < "$path_config"
-case "$(uname -s)" in
-	Darwin)
-		mac=true
-	;;
-	Linux)
-		linux=true
-	;;
-	CYGWIN*|MINGW32*|MSYS*)
-		windows=true
-		path_root=/c/xampp/htdocs
-		alias mysql=$path_root/../mysql/bin/mysql.exe
-		alias mysqldump=$path_root/../mysql/bin/mysqldump.exe
-		alias php=$path_root/../php/php.exe
-		alias subl="/C/Program\ Files/Sublime\ Text\ 3/subl.exe"
-	;;
-esac
-migrations=$path_root/sindicalizi/migrations/
+
 
 if [[ "$atualiza_bashrc" == true ]] ; then
 	init_bash
