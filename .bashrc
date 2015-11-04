@@ -23,6 +23,9 @@ remote_host=sindicalizi.com.br
 remote_user=sindical
 remote_pass="
 use_database=
+alias mysql=mysql
+alias mysqldump=mysqldump
+
 [ -f ~/.bashversion ] || touch ~/.bashversion
 clear
 set -o noglob
@@ -55,8 +58,6 @@ migrations=$path_root/sindicalizi/migrations/
 alias ls='ls -F --show-control-chars'
 alias gts='git status '
 alias e='exit'
-alias mysql=mysql
-alias mysqldump=mysqldump
 alias php=php
 alias home=path_home
 alias bash=open_bash
