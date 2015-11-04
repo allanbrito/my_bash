@@ -620,7 +620,7 @@ function mysql_use {
 			fi
 		fi 
 	fi
-	echo "usando $use_database"
+	# echo "usando $use_database"
 }
 
 function mysql_restore {
