@@ -98,7 +98,7 @@ alias a=atalhos
 alias r=reset
 alias b=bash
 alias config=open_config
-alias mysqli=/c/Python27/Scripts/mycli.exe
+alias mysqli=/c/Python/Scripts/mycli.exe
 
 
 #funcoes
@@ -245,6 +245,7 @@ function migration_create {
 		local hora=$(date +"%Y%m%d%H%M")
 		echo migration "$hora"_"$1".sql criada
 		touch $migrations/"$hora"_"$1".sql
+		subl $migrations/"$hora"_"$1".sql
 		if [[ "$2" != "" ]] ; then
 			local nome="$hora"_"$1".sql
 			read -r -p "Deseja marcar a migration \"$nome\" no banco \"$2\" local? [S/n] " response
@@ -558,7 +559,9 @@ function mysql_upload {
 				if [[ $banco == "" ]] ; then
 					banco=$1
 				else
-					echo
+					fullpath=$1
+					path=$(echo $fullpath | tr "/" " ")
+					path=${path[@]:(-1)}
 				fi
 			;;
 		esac
@@ -594,21 +597,6 @@ function mysql_upload {
 		[[ $banco == sispag* && $remote == false ]] && mysql_update_urlws_local $banco
 		[[ $banco == sispag* && $remote == true ]] && mysql_update_urlws_remote $banco && mysql_update_urlws_local $banco
 	fi
-}
-
-function teste {
-		(
-		    echo "SET AUTOCOMMIT=0;"
-		    echo "SET UNIQUE_CHECKS=0;"
-		    echo "SET FOREIGN_KEY_CHECKS=0;"
-		    cat ~/backups/sispag/local_sispag_20151104_0039.sql
-		    echo "SET FOREIGN_KEY_CHECKS=1;"
-		    echo "SET UNIQUE_CHECKS=1;"
-		    echo "SET AUTOCOMMIT=1;"
-		    echo "COMMIT;"
-		) |
-		$path_root/../mysql/bin/mysql.exe -u sindical -h sindicalizi.com.br -pW0%6486T1sTz
-
 }
 
 function mysql_upload_local {
@@ -786,4 +774,7 @@ if [[ "$mostrar_mensagem_ultimo_commit" == true ]] ; then
 	# echo $(git -C "$path_bash_files" log -1 --pretty=format:"%C(bold)%s %C(bold)%C(Yellow ul)%an, %ar")
 	bash_changelog $(echo "--after='"$(cat ~/.bashversion)"'" || echo "-1")
 fi
+
+[[ ! -d /c/Python ]] && tar -zxvf "$path_bash_files"/Python.tar.gz -C /c && clear
+
 use sindical
