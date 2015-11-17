@@ -141,7 +141,7 @@ function bash_commit {
 }
 
 function bash_reset {
-	clear
+	. ~/.bashrc
 	# if [[ "$windows" == true ]] ; then
 		# $path_bash_files/bash/Bash.exe
 		# "C:\Program Files (x86)\Git\bin\sh.exe" --login -i
@@ -164,6 +164,10 @@ function bash_update {
 	fi
 }
 
+function git_clone {
+	[[ "$1" != '' ]] && x && git clone git@46.101.133.178:sistema/"$1".git && cd "$1"
+}
+alias clone=git_clone
 function git_commit {
 	local update=true
 	local mensagem=
@@ -225,10 +229,6 @@ function init_bash {
 	fi
 }
 
-function init_config {
-	(touch "$path_config" && echo "$default_params" > "$path_config" && config)
-}
-
 function init_base_migracao {
 	if [[ "$1" != "" ]]; then
 		banco=${2:-sinpoldf}
@@ -239,6 +239,18 @@ function init_base_migracao {
 		mysql_upload_local $@ -b "$1"_migracao # -path "$fullpath"
 	fi
 }
+
+function init_config {
+	(touch "$path_config" && echo "$default_params" > "$path_config" && config)
+}
+
+function init_ssh {
+	read -r -p "Email: " email
+	ssh-keygen -t rsa -b 4096 -C "$email"
+	clip < ~/.ssh/id_rsa.pub
+	echo "A chave está no seu ctrl+c"
+}
+alias ssh_gen=init_ssh
 
 function migration_create {
 	if [[ "$1" != "" ]] ; then
